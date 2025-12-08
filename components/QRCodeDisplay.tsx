@@ -150,7 +150,7 @@ export function QRCodeDisplay({
           <h2 className="text-2xl font-bold text-gray-800">
             Registration Successful!
           </h2>
-          <p className="mt-1 text-gray-600">Your invite is ready to download</p>
+          <p className="mt-1 text-gray-600">Your invite is ready to download. An email has been sent to your guest</p>
         </div>
       </div>
 
