@@ -172,7 +172,7 @@ export function QRCodeDisplay({
             className="flex items-center justify-center gap-2 bg-[#F40009] text-white py-4 px-6 rounded-lg font-semibold hover:bg-[#D00008] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FileImage size={20} />
-            {isExporting ? "Exporting..." : "Export as PNG"}
+            {isExporting ? "Downloading..." : "Download as PNG"}
           </button>
           <button
             onClick={exportAsPDF}
@@ -180,7 +180,7 @@ export function QRCodeDisplay({
             className="flex items-center justify-center gap-2 bg-[#F40009] text-white py-4 px-6 rounded-lg font-semibold hover:bg-[#D00008] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FileText size={20} />
-            {isExporting ? "Exporting..." : "Export as PDF"}
+            {isExporting ? "Downloading..." : "Download as PDF"}
           </button>
         </div>
       </div>

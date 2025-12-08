@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
-import QRCode from 'qrcode';
-import sharp from 'sharp';
-import { readFile, access } from 'fs/promises';
-import { constants } from 'fs';
-import path from 'path';
-
+import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
+import QRCode from "qrcode";
+import sharp from "sharp";
+import { readFile, access } from "fs/promises";
+import { constants } from "fs";
+import path from "path";
 
 interface EmailData {
   fullName: string;
@@ -19,53 +18,61 @@ const generateInviteImageBuffer = async (data: EmailData): Promise<Buffer> => {
   try {
     // Generate QR code as buffer
     const qrData = `Full Name: ${data.fullName}\nGuest Name: ${data.guestName}`;
-    
+
     const qrCodeBuffer = await QRCode.toBuffer(qrData, {
       width: 120,
       margin: 1,
       color: {
-        dark: '#000000',
-        light: '#FFFFFF',
+        dark: "#000000",
+        light: "#FFFFFF",
       },
-      type: 'png',
+      type: "png",
     });
 
     // Try PNG first, fallback to SVG
-    let backgroundPath = path.join(process.cwd(), 'public', 'Invite-without-QR.png');
-    
+    let backgroundPath = path.join(
+      process.cwd(),
+      "public",
+      "Invite-without-QR.png"
+    );
+
     try {
       await access(backgroundPath, constants.F_OK);
     } catch {
       // If PNG doesn't exist, use SVG
-      backgroundPath = path.join(process.cwd(), 'public', 'Invite-without-QR.svg');
+      backgroundPath = path.join(
+        process.cwd(),
+        "public",
+        "Invite-without-QR.svg"
+      );
     }
 
     const backgroundBuffer = await readFile(backgroundPath);
 
     // Process background image
     let bgPngBuffer: Buffer;
-    
-    if (backgroundPath.endsWith('.svg')) {
+
+    if (backgroundPath.endsWith(".svg")) {
       // For SVG, add explicit dimensions
       const svgString = backgroundBuffer.toString();
       const modifiedSvg = svgString.replace(
         /<svg/,
         '<svg width="600" height="800"'
       );
-      
+
       bgPngBuffer = await sharp(Buffer.from(modifiedSvg))
-        .resize(600, 800, { 
-          fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        .resize(600, 800, {
+          fit: "contain",
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
         })
         .png()
         .toBuffer();
     } else {
       // For PNG/JPG
       bgPngBuffer = await sharp(backgroundBuffer)
-        .resize(600, 800, { 
-          fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        .resize(600, 800, {
+          fit: "contain",
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
         })
         .png()
         .toBuffer();
@@ -90,7 +97,7 @@ const generateInviteImageBuffer = async (data: EmailData): Promise<Buffer> => {
 
     return finalImage;
   } catch (error) {
-    console.error('Error generating invite image:', error);
+    console.error("Error generating invite image:", error);
     throw error;
   }
 };
@@ -138,11 +145,11 @@ const getEmailTemplate = (data: EmailData): string => {
             <td style="padding: 40px 30px;">
               
               <h2 style="font-size: 24px; color: #333333; margin: 0 0 20px 0; font-weight: bold;">
-                Hello ${data.fullName}!
+                Hello ${data.guestName}!
               </h2>
 
               <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0 0 15px 0;">
-                Congratulations! You have successfully registered for the <strong>Owambe Extravaganza</strong>.
+                Congratulations! You have been invited to the <strong>Coca-cola Owambe Extravaganza</strong>.
               </p>
               
               <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0 0 30px 0;">
@@ -152,33 +159,16 @@ const getEmailTemplate = (data: EmailData): string => {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f9f9f9; border-left: 4px solid #F40009; margin: 30px 0;">
                 <tr>
                   <td style="padding: 20px;">
-                    <h3 style="color: #F40009; margin: 0 0 15px 0; font-size: 20px; font-weight: bold;">
-                      👤 Your Registration Details
-                    </h3>
+                  
                     
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      
                       <tr>
                         <td style="padding: 5px 0;">
-                          <span style="font-weight: bold; color: #F40009; font-size: 15px;">Name:</span>
-                          <span style="color: #333333; font-size: 15px;"> ${data.fullName}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 5px 0;">
-                          <span style="font-weight: bold; color: #F40009; font-size: 15px;">Guest Name:</span>
-                          <span style="color: #333333; font-size: 15px;"> ${data.guestName}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 5px 0;">
-                          <span style="font-weight: bold; color: #F40009; font-size: 15px;">Email:</span>
-                          <span style="color: #333333; font-size: 15px;"> ${data.email}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 5px 0;">
-                          <span style="font-weight: bold; color: #F40009; font-size: 15px;">Registration ID:</span>
-                          <span style="color: #333333; font-size: 15px;"> ${data.registrationId}</span>
+                          <span style="font-weight: bold; color: #F40009; font-size: 15px;">Guest who invited you: </span>
+                          <span style="color: #333333; font-size: 15px;"> ${
+                            data.fullName
+                          }</span>
                         </td>
                       </tr>
                     </table>
@@ -233,10 +223,7 @@ const getEmailTemplate = (data: EmailData): string => {
               <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold;">
                 Owambe Extravaganza
               </p>
-              <p style="margin: 0 0 20px 0; font-size: 14px;">
-                Making Memories, Creating Moments
-              </p>
-
+             
               <p style="font-size: 12px; color: #999999; margin: 20px 0 0 0; line-height: 1.5;">
                  © ${new Date().getFullYear()} Owambe Extravaganza. All rights reserved.<br>
                 This is an automated email. Please do not reply directly to this message.
@@ -257,7 +244,7 @@ const getEmailTemplate = (data: EmailData): string => {
 // Create nodemailer transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
@@ -276,7 +263,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!fullName || !guestName || !email || !registrationId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
@@ -292,15 +279,18 @@ export async function POST(request: NextRequest) {
 
     // Email options with embedded invite image
     const mailOptions = {
-      from: `"Owambe Extravaganza" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: `"Owambe Extravaganza" <${
+        process.env.SMTP_FROM || process.env.SMTP_USER
+      }>`,
       to: email,
-      subject: '🎉 Your Owambe Extravaganza Invitation - Registration Confirmed',
+      subject:
+        "🎉 Your Owambe Extravaganza Invitation - Registration Confirmed",
       html: htmlContent,
       attachments: [
         {
           filename: `${fullName}-Invite.png`,
           content: inviteImageBuffer,
-          cid: 'invite', // Content-ID for embedding in HTML
+          cid: "invite", // Content-ID for embedding in HTML
         },
       ],
       text: `
@@ -326,23 +316,22 @@ Contact: events@owambe.com | +234 801 234 5678
     // Send email
     const info = await transporter.sendMail(mailOptions);
 
-    console.log('Email sent successfully:', info.messageId);
+    console.log("Email sent successfully:", info.messageId);
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         messageId: info.messageId,
-        message: 'Email sent successfully' 
+        message: "Email sent successfully",
       },
       { status: 200 }
     );
-
   } catch (error: any) {
-    console.error('Error sending email:', error);
+    console.error("Error sending email:", error);
     return NextResponse.json(
-      { 
-        error: 'Failed to send email',
-        details: error.message 
+      {
+        error: "Failed to send email",
+        details: error.message,
       },
       { status: 500 }
     );
@@ -351,10 +340,10 @@ Contact: events@owambe.com | +234 801 234 5678
 
 // Optional: Add GET handler for testing
 export async function GET() {
-  return NextResponse.json({ 
-    message: 'Email API endpoint is working',
+  return NextResponse.json({
+    message: "Email API endpoint is working",
     endpoints: {
-      POST: '/api/send-email - Send invitation email'
-    }
+      POST: "/api/send-email - Send invitation email",
+    },
   });
 }
