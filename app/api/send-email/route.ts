@@ -149,7 +149,7 @@ const getEmailTemplate = (data: EmailData): string => {
               </h2>
 
               <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0 0 15px 0;">
-                Congratulations! You have been invited to the <strong>Coca-cola Owambe Extravaganza</strong>.
+                Congratulations! You have been invited to the <strong>Coca-Cola Owambe Extravaganza</strong>.
               </p>
               
               <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0 0 30px 0;">
