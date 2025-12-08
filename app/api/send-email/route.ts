@@ -113,11 +113,24 @@ const getEmailTemplate = (data: EmailData): string => {
         
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; max-width: 600px; width: 100%;">
           
-          <tr>
+         <tr>
             <td align="center" style="background-color: #F40009; padding: 40px 20px;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: bold; line-height: 1.2;">
-                🎉 Coca-Cola Owambe Extravaganza 🎉
+              <!-- Coca-Cola Logo SVG (White) -->
+             <div style="margin-bottom: 20px;">
+                <img src="https://res.cloudinary.com/deairfyff/image/upload/v1765193553/Coca-cola/Coca_cola_logo_White_hdhumq.png" 
+                     alt="Coca-Cola Logo" 
+                     width="200" 
+                     height="auto" 
+                     style="display: block; margin: 0 auto; filter: brightness(0) invert(1);" />
+              </div>
+              
+              <h1 style="color: #ffffff; margin: 15px 0 0 0; font-size: 32px; font-weight: bold; line-height: 1.2; text-transform: uppercase; letter-spacing: 2px;">
+                Owambe Extravaganza
               </h1>
+              
+              <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 18px; opacity: 0.95;">
+                🎉 You're Invited! 🎉
+              </p>
             </td>
           </tr>
 
@@ -225,7 +238,7 @@ const getEmailTemplate = (data: EmailData): string => {
               </p>
 
               <p style="font-size: 12px; color: #999999; margin: 20px 0 0 0; line-height: 1.5;">
-                © 2024 Owambe Extravaganza. All rights reserved.<br>
+                 © ${new Date().getFullYear()} Owambe Extravaganza. All rights reserved.<br>
                 This is an automated email. Please do not reply directly to this message.
               </p>
             </td>
