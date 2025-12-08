@@ -1,65 +1,207 @@
-import Image from "next/image";
+"use client"
+import { QRCodeDisplay } from "@/components/QRCodeDisplay";
+import { RegistrationForm } from "@/components/RegistrationForm";
+import { sendInvitationEmail } from "@/lib/emailClient";
+import { Registration, supabase } from "@/lib/supabase";
+import { useState } from "react";
+
+
+interface RegistrationData {
+  id: string;
+  fullName: string;
+  guestName: string;
+  email: string;
+}
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [registration, setRegistration] = useState<RegistrationData | null>(
+    null
+  );
+  const [error, setError] = useState<string>("");
+
+  const handleSubmit = async (formData: {
+    fullName: string;
+    guestName: string;
+    email: string;
+  }) => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const qrCodeData = JSON.stringify({
+        name: formData.fullName,
+        guest: formData.guestName,
+        email: formData.email,
+      });
+
+      const registrationData: Omit<Registration, "id" | "created_at"> = {
+        full_name: formData.fullName,
+        guest_name: formData.guestName,
+        email: formData.email,
+        qr_code_data: qrCodeData,
+      };
+
+      const { data, error: insertError } = await supabase
+  .from("registrations")
+  .insert([registrationData])
+  .select()
+  .single();
+
+if (insertError) {
+  throw insertError;
+}
+
+if (data) {
+  // Sync to Google Sheets
+  await syncToGoogleSheets(data);
+  
+  // Send email
+  const emailSent = await sendInvitationEmail({
+    fullName: formData.fullName,
+    guestName: formData.guestName,
+    email: formData.email,
+    registrationId: data.id,
+  });
+
+  if (!emailSent) {
+    console.warn('Email failed to send, but registration was successful');
+  }
+
+  setRegistration({
+    id: data.id,
+    fullName: formData.fullName,
+    guestName: formData.guestName,
+    email: formData.email,
+  });
+}
+    } catch (err) {
+      console.error("Error creating registration:", err);
+      setError("Failed to create registration. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const syncToGoogleSheets = async (registrationData: Registration) => {
+    try {
+      const webhookUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL;
+
+      if (!webhookUrl) {
+        console.warn("Google Sheets webhook URL not configured");
+        return;
+      }
+
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        mode: "no-cors", // Required for Apps Script
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: registrationData.id,
+          // first_name: registrationData.first_name,
+          // last_name: registrationData.last_name,
+          full_name: registrationData.full_name,
+          guest_name: registrationData.guest_name,
+          // phone_number: registrationData.phone_number || "",
+          email: registrationData.email,
+          created_at: registrationData.created_at,
+        }),
+      });
+
+      // Note: With no-cors mode, we can't read the response
+      console.log("Data sent to Google Sheets");
+    } catch (err) {
+      console.warn("Google Sheets sync error:", err);
+    }
+  };
+
+  const sendInvitationEmailToUser = async (
+    formData: {
+      // firstName: string;
+      // lastName: string;
+      fullName: string;
+      guestName: string;
+      // phoneNumber: string;
+      email: string;
+    },
+    registrationId: string
+  ) => {
+    try {
+      // const fullName = `${formData.firstName} ${formData.lastName}`;
+
+      // Send email with QR code
+      const emailSent = await sendInvitationEmail({
+        fullName: formData.fullName,
+        guestName: formData.guestName,
+        email: formData.email,
+        registrationId: registrationId,
+      });
+
+      if (emailSent) {
+        console.log("Invitation email sent successfully to:", formData.email);
+      } else {
+        console.warn("Failed to send invitation email");
+      }
+    } catch (err) {
+      console.warn("Email sending error:", err);
+    }
+  };
+
+  const handleReset = () => {
+    setRegistration(null);
+    setError("");
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="container px-4 py-12 mx-auto">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-12 text-center">
+            <div className="flex flex-col items-center justify-center gap-3 mb-4">
+              {/* <QrCode size={48} className="text-[#F40009]" /> */}
+              <img
+                src="/Coca-cola-logo.svg"
+                className=" w-[300px] h-[150px] "
+              />
+              <h1 className="text-4xl font-bold text-gray-800 md:text-5xl">
+                {"Owambe Extravaganza".toLocaleUpperCase()}
+              </h1>
+            </div>
+            <p className="text-lg text-gray-600">
+              Register for the event and download your invite
+            </p>
+          </div>
+
+          {error && (
+            <div className="px-4 py-3 mb-6 text-red-700 border border-red-200 rounded-lg bg-red-50">
+              {error}
+            </div>
+          )}
+
+          {!registration ? (
+            <div className="p-8 bg-white shadow-lg rounded-xl">
+              <RegistrationForm onSubmit={handleSubmit} isLoading={isLoading} />
+            </div>
+          ) : (
+            <QRCodeDisplay
+              registrationId={registration.id}
+              // firstName={registration.firstName}
+              // lastName={registration.lastName}
+              fullName={registration.fullName}
+              guestName={registration.guestName}
+              email={registration.email}
+              onReset={handleReset}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          )}
         </div>
-      </main>
+      </div>
+
+      {/* <footer className="py-8 text-center text-gray-600">
+        <p className="text-sm">Event Registration System</p>
+      </footer> */}
     </div>
   );
+
 }
