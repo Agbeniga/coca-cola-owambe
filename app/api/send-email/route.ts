@@ -1,8 +1,11 @@
-
-
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import QRCode from 'qrcode';
+import sharp from 'sharp';
+import { readFile, access } from 'fs/promises';
+import { constants } from 'fs';
+import path from 'path';
+
 
 interface EmailData {
   fullName: string;
@@ -11,28 +14,89 @@ interface EmailData {
   registrationId: string;
 }
 
- // Generate QR code as Buffer instead of base64 data URL
-const generateQRCodeBuffer = async (data: EmailData): Promise<Buffer> => {
-  const qrData = JSON.stringify({
-    id: data.registrationId,
-    fullName: data.fullName,
-    guestName: data.guestName,
-    email: data.email,
-  });
+// Generate the full invite image with QR code overlay
+const generateInviteImageBuffer = async (data: EmailData): Promise<Buffer> => {
+  try {
+    // Generate QR code as buffer
+    const qrData = `Full Name: ${data.fullName}\nGuest Name: ${data.guestName}`;
+    
+    const qrCodeBuffer = await QRCode.toBuffer(qrData, {
+      width: 120,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF',
+      },
+      type: 'png',
+    });
 
-  // Generate as buffer instead of data URL
-  return await QRCode.toBuffer(qrData, {
-    width: 400,
-    margin: 2,
-    color: {
-      dark: '#000000',
-      light: '#FFFFFF',
-    },
-  });
+    // Try PNG first, fallback to SVG
+    let backgroundPath = path.join(process.cwd(), 'public', 'Invite-without-QR.png');
+    
+    try {
+      await access(backgroundPath, constants.F_OK);
+    } catch {
+      // If PNG doesn't exist, use SVG
+      backgroundPath = path.join(process.cwd(), 'public', 'Invite-without-QR.svg');
+    }
+
+    const backgroundBuffer = await readFile(backgroundPath);
+
+    // Process background image
+    let bgPngBuffer: Buffer;
+    
+    if (backgroundPath.endsWith('.svg')) {
+      // For SVG, add explicit dimensions
+      const svgString = backgroundBuffer.toString();
+      const modifiedSvg = svgString.replace(
+        /<svg/,
+        '<svg width="600" height="800"'
+      );
+      
+      bgPngBuffer = await sharp(Buffer.from(modifiedSvg))
+        .resize(600, 800, { 
+          fit: 'contain',
+          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        })
+        .png()
+        .toBuffer();
+    } else {
+      // For PNG/JPG
+      bgPngBuffer = await sharp(backgroundBuffer)
+        .resize(600, 800, { 
+          fit: 'contain',
+          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        })
+        .png()
+        .toBuffer();
+    }
+
+    // Calculate QR code position (centered, slightly below middle)
+    const qrSize = 120;
+    const x = Math.floor((600 - qrSize) / 2);
+    const y = Math.floor((800 - qrSize) / 2 + 70);
+
+    // Composite QR code on background
+    const finalImage = await sharp(bgPngBuffer)
+      .composite([
+        {
+          input: qrCodeBuffer,
+          top: y,
+          left: x,
+        },
+      ])
+      .png()
+      .toBuffer();
+
+    return finalImage;
+  } catch (error) {
+    console.error('Error generating invite image:', error);
+    throw error;
+  }
 };
 
 // Email template HTML
-const getEmailTemplate = (data: EmailData, qrCodeBase64: string): string => {
+const getEmailTemplate = (data: EmailData): string => {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,8 +135,6 @@ const getEmailTemplate = (data: EmailData, qrCodeBase64: string): string => {
               <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0 0 30px 0;">
                 We are thrilled to have you join us for an unforgettable celebration filled with music, dance, food, and great company!
               </p>
-
-           
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f9f9f9; border-left: 4px solid #F40009; margin: 30px 0;">
                 <tr>
@@ -115,13 +177,13 @@ const getEmailTemplate = (data: EmailData, qrCodeBase64: string): string => {
                 <tr>
                   <td align="center" style="padding: 30px;">
                     <h3 style="color: #333333; font-size: 20px; margin: 0 0 15px 0; font-weight: bold;">
-                      🎫 Your Event Pass
+                      🎫 Your Event Invitation
                     </h3>
                     <p style="color: #666666; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">
-                      Please present this QR code at the entrance for quick check-in:
+                      Please present this invitation at the entrance for quick check-in:
                     </p>
                     
-                   <img src="cid:qrcode" alt="Event QR Code" width="250" height="250" style="display: block; margin: 20px auto; max-width: 250px; height: auto; border: 2px solid #e0e0e0; padding: 10px; background-color: #ffffff;" />
+                    <img src="cid:invite" alt="Event Invitation with QR Code" width="100%" style="display: block; margin: 20px auto; max-width: 600px; height: auto; border: 2px solid #e0e0e0; border-radius: 8px;" />
                   </td>
                 </tr>
               </table>
@@ -130,14 +192,12 @@ const getEmailTemplate = (data: EmailData, qrCodeBase64: string): string => {
                 <tr>
                   <td style="padding: 15px;">
                     <p style="margin: 0; font-size: 14px; color: #856404; line-height: 1.5;">
-                      <strong>⚠️ Important:</strong> Please save this email or take a screenshot of your QR code. 
+                      <strong>⚠️ Important:</strong> Please save this email or download the invitation. 
                       You will need to present it at the venue for entry. Ensure your phone is charged!
                     </p>
                   </td>
                 </tr>
               </table>
-
-              
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eeeeee;">
                 <tr>
@@ -155,7 +215,21 @@ const getEmailTemplate = (data: EmailData, qrCodeBase64: string): string => {
             </td>
           </tr>
 
-          
+          <tr>
+            <td align="center" style="background-color: #333333; color: #ffffff; padding: 30px;">
+              <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold;">
+                Owambe Extravaganza
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 14px;">
+                Making Memories, Creating Moments
+              </p>
+
+              <p style="font-size: 12px; color: #999999; margin: 20px 0 0 0; line-height: 1.5;">
+                © 2024 Owambe Extravaganza. All rights reserved.<br>
+                This is an automated email. Please do not reply directly to this message.
+              </p>
+            </td>
+          </tr>
 
         </table>
 
@@ -167,35 +241,12 @@ const getEmailTemplate = (data: EmailData, qrCodeBase64: string): string => {
 </html>`;
 };
 
-// Generate QR code as base64 data URL
-const generateQRCodeBase64 = async (data: EmailData): Promise<string> => {
-  const qrData = JSON.stringify({
-    id: data.registrationId,
-    fullName: data.fullName,
-    guestName: data.guestName,
-    email: data.email,
-  });
-
-  const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
-    width: 400,
-    margin: 2,
-    color: {
-      dark: '#000000',
-      light: '#FFFFFF',
-    },
-  });
-
-  return qrCodeDataUrl;
-};
-
 // Create nodemailer transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host:  'smtp.gmail.com',
+    host: 'smtp.gmail.com',
     port: 587,
-    // parseInt(process.env.SMTP_PORT || '587'),
     secure: false,
-    // process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -217,32 +268,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate QR code
-    const qrCodeBase64 = await generateQRCodeBase64(body);
+    // Generate the full invite image with QR code
+    const inviteImageBuffer = await generateInviteImageBuffer(body);
 
     // Get email HTML template
-    const htmlContent = getEmailTemplate(body, qrCodeBase64);
+    const htmlContent = getEmailTemplate(body);
 
     // Create transporter
     const transporter = createTransporter();
 
-    // Email options
+    // Email options with embedded invite image
     const mailOptions = {
       from: `"Owambe Extravaganza" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to: email,
       subject: '🎉 Your Owambe Extravaganza Invitation - Registration Confirmed',
       html: htmlContent,
+      attachments: [
+        {
+          filename: `${fullName}-Invite.png`,
+          content: inviteImageBuffer,
+          cid: 'invite', // Content-ID for embedding in HTML
+        },
+      ],
       text: `
 Hello ${fullName}!
 
 Congratulations! You have successfully registered for the Owambe Extravaganza.
-
-EVENT DETAILS
-Event: Owambe Extravaganza 2024
-Date: Saturday, December 21, 2024
-Time: 5:00 PM - 11:00 PM
-Venue: Grand Ballroom, Lagos Continental Hotel
-Dress Code: Traditional Attire / Smart Casual
 
 YOUR REGISTRATION DETAILS
 Name: ${fullName}
@@ -250,7 +301,7 @@ Guest Name: ${guestName}
 Email: ${email}
 Registration ID: ${registrationId}
 
-IMPORTANT: Please present your QR code at the entrance for quick check-in.
+IMPORTANT: Please present your invitation at the entrance for quick check-in.
 
 We can't wait to celebrate with you!
 See you there! 🎊
