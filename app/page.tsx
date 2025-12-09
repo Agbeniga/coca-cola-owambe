@@ -170,7 +170,7 @@ if (data) {
               </h1>
             </div>
             <p className="text-lg text-gray-600">
-              Register for the event and download your invite
+              Register your guest and download your invite
             </p>
           </div>
 
