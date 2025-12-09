@@ -92,6 +92,8 @@ if (data) {
         return;
       }
 
+      console.log(registrationData);
+
       const response = await fetch(webhookUrl, {
         method: "POST",
         mode: "no-cors", // Required for Apps Script

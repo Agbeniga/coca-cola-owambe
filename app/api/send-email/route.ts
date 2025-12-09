@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
       text: `
 Hello ${guestName}!
 
-Congratulations! You have successfully registered for the Owambe Extravaganza.
+Congratulations! You have been invited for the Owambe Extravaganza.
 
 
 Guest who invited you: ${fullName}
