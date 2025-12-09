@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import {  Mail,  Users } from 'lucide-react';
+import {  Mail,  Users, AlertCircle } from 'lucide-react';
 
 interface FormData {
-  // firstName: string;
-  // lastName: string;
   fullName: string;
   guestName: string;
-  // phoneNumber: string;
   email: string;
+  staffEmail: string;
 }
 
 interface RegistrationFormProps {
@@ -17,12 +15,10 @@ interface RegistrationFormProps {
 
 export function RegistrationForm({ onSubmit, isLoading }: RegistrationFormProps) {
   const [formData, setFormData] = useState<FormData>({
-    // firstName: '',
-    // lastName: '',
     fullName: '',
     guestName: '',
-    // phoneNumber: '',
     email: '',
+    staffEmail: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,47 +33,45 @@ export function RegistrationForm({ onSubmit, isLoading }: RegistrationFormProps)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {/* Important Notice */}
+      <div className="flex items-start gap-3 p-4 border-2 border-yellow-400 rounded-lg bg-yellow-50">
+        <AlertCircle className="flex-shrink-0 mt-0.5 text-yellow-600" size={20} />
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Full Name *
-          </label>
-          <div className="relative">
-            <User className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
-            <input
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F40009] focus:border-transparent outline-none transition"
-              placeholder="Enter first name"
-            />
-          </div>
+          <p className="text-sm font-semibold text-yellow-800">
+            Important Notice for Associates
+          </p>
+          <p className="text-sm text-yellow-700">
+            Each associate is restricted to invite only one guest using your KO email address.
+          </p>
         </div>
+      </div>
 
-        <div>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Last Name *
-          </label>
-          <div className="relative">
-            <User className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
-            <input
-              type="text"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F40009] focus:border-transparent outline-none transition"
-              placeholder="Enter last name"
-            />
-          </div>
+      <div>
+        <label className="block mb-2 text-sm font-medium text-gray-700">
+          Associate Email Address *
+        </label>
+        <div className="relative">
+          <Mail className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
+          <input
+            type="email"
+            name="staffEmail"
+            value={formData.staffEmail}
+            onChange={handleChange}
+            required
+            pattern="[A-Za-z0-9._%+\-]+@coca-cola\.com"
+            title="Please enter a valid Coca-Cola email address (e.g., name@coca-cola.com)"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F40009] focus:border-transparent outline-none transition"
+            placeholder="name@coca-cola.com"
+          />
         </div>
-      </div> */}
+        <p className="mt-1 text-xs text-gray-500">
+          Must be a valid Coca-Cola email address (@coca-cola.com)
+        </p>
+      </div>
 
        <div>
         <label className="block mb-2 text-sm font-medium text-gray-700">
-          Full Name*
+          Your Full Name *
         </label>
         <div className="relative">
           <Users className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
@@ -88,7 +82,7 @@ export function RegistrationForm({ onSubmit, isLoading }: RegistrationFormProps)
             onChange={handleChange}
             required
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F40009] focus:border-transparent outline-none transition"
-            placeholder="Enter full name"
+            placeholder="Enter your full name"
           />
         </div>
       </div>
@@ -124,27 +118,10 @@ export function RegistrationForm({ onSubmit, isLoading }: RegistrationFormProps)
             onChange={handleChange}
             required
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F40009] focus:border-transparent outline-none transition"
-            placeholder="Enter email address"
+            placeholder="Enter guest email address"
           />
         </div>
       </div>
-
-      {/* <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Phone Number
-        </label>
-        <div className="relative">
-          <Phone className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F40009] focus:border-transparent outline-none transition"
-            placeholder="Enter phone number (optional)"
-          />
-        </div>
-      </div> */}
 
       <button
         type="submit"

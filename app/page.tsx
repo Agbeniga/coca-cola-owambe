@@ -11,6 +11,7 @@ interface RegistrationData {
   fullName: string;
   guestName: string;
   email: string;
+  staffEmail: string;
 }
 
 export default function Home() {
@@ -24,57 +25,89 @@ export default function Home() {
     fullName: string;
     guestName: string;
     email: string;
+    staffEmail: string;
   }) => {
     setIsLoading(true);
     setError("");
 
     try {
+      // Validate Coca-Cola email domain
+      const staffEmailLower = formData.staffEmail.toLowerCase().trim();
+      if (!staffEmailLower.endsWith('@coca-cola.com')) {
+        setError(
+          "Invalid staff email. Only Coca-Cola email addresses (@coca-cola.com) are allowed."
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if staff email has already registered a guest
+      const { data: existingRegistrations, error: checkError } = await supabase
+        .from("registrations")
+        .select("id, staff_email")
+        .eq("staff_email", staffEmailLower);
+
+      if (checkError) {
+        throw checkError;
+      }
+
+      if (existingRegistrations && existingRegistrations.length > 0) {
+        setError(
+          "This staff email has already been used to invite a guest. Each staff member is limited to one guest invitation."
+        );
+        setIsLoading(false);
+        return;
+      }
+
       const qrCodeData = JSON.stringify({
         name: formData.fullName,
         guest: formData.guestName,
         email: formData.email,
+        staffEmail: formData.staffEmail,
       });
 
       const registrationData: Omit<Registration, "id" | "created_at"> = {
         full_name: formData.fullName,
         guest_name: formData.guestName,
         email: formData.email,
+        staff_email: staffEmailLower,
         qr_code_data: qrCodeData,
       };
 
       const { data, error: insertError } = await supabase
-  .from("registrations")
-  .insert([registrationData])
-  .select()
-  .single();
+        .from("registrations")
+        .insert([registrationData])
+        .select()
+        .single();
 
-if (insertError) {
-  throw insertError;
-}
+      if (insertError) {
+        throw insertError;
+      }
 
-if (data) {
-  // Sync to Google Sheets
-  await syncToGoogleSheets(data);
-  
-  // Send email
-  const emailSent = await sendInvitationEmail({
-    fullName: formData.fullName,
-    guestName: formData.guestName,
-    email: formData.email,
-    registrationId: data.id,
-  });
+      if (data) {
+        // Sync to Google Sheets
+        await syncToGoogleSheets(data);
+        
+        // Send email
+        const emailSent = await sendInvitationEmail({
+          fullName: formData.fullName,
+          guestName: formData.guestName,
+          email: formData.email,
+          registrationId: data.id,
+        });
 
-  if (!emailSent) {
-    console.warn('Email failed to send, but registration was successful');
-  }
+        if (!emailSent) {
+          console.warn('Email failed to send, but registration was successful');
+        }
 
-  setRegistration({
-    id: data.id,
-    fullName: formData.fullName,
-    guestName: formData.guestName,
-    email: formData.email,
-  });
-}
+        setRegistration({
+          id: data.id,
+          fullName: formData.fullName,
+          guestName: formData.guestName,
+          email: formData.email,
+          staffEmail: formData.staffEmail,
+        });
+      }
     } catch (err) {
       console.error("Error creating registration:", err);
       setError("Failed to create registration. Please try again.");
@@ -102,12 +135,11 @@ if (data) {
         },
         body: JSON.stringify({
           id: registrationData.id,
-          // first_name: registrationData.first_name,
-          // last_name: registrationData.last_name,
           full_name: registrationData.full_name,
+          staff_email: registrationData.staff_email,
           guest_name: registrationData.guest_name,
-          // phone_number: registrationData.phone_number || "",
           email: registrationData.email,
+          
           created_at: registrationData.created_at,
         }),
       });
@@ -121,18 +153,14 @@ if (data) {
 
   const sendInvitationEmailToUser = async (
     formData: {
-      // firstName: string;
-      // lastName: string;
       fullName: string;
       guestName: string;
-      // phoneNumber: string;
       email: string;
+      staffEmail: string;
     },
     registrationId: string
   ) => {
     try {
-      // const fullName = `${formData.firstName} ${formData.lastName}`;
-
       // Send email with QR code
       const emailSent = await sendInvitationEmail({
         fullName: formData.fullName,
@@ -189,8 +217,6 @@ if (data) {
           ) : (
             <QRCodeDisplay
               registrationId={registration.id}
-              // firstName={registration.firstName}
-              // lastName={registration.lastName}
               fullName={registration.fullName}
               guestName={registration.guestName}
               email={registration.email}

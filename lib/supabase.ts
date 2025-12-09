@@ -15,6 +15,7 @@ export interface Registration {
   full_name: string;
   guest_name: string;
   email: string;
+  staff_email: string;
   qr_code_data: string;
   created_at: string;
 }
