@@ -286,28 +286,18 @@ export async function POST(request: NextRequest) {
       html: htmlContent,
       attachments: [
         {
-          filename: `${fullName}-Invite.png`,
+          filename: `${guestName}-Invite.png`,
           content: inviteImageBuffer,
           cid: "invite", // Content-ID for embedding in HTML
         },
       ],
       text: `
-Hello ${fullName}!
+Hello ${guestName}!
 
 Congratulations! You have successfully registered for the Owambe Extravaganza.
 
-YOUR REGISTRATION DETAILS
-Name: ${fullName}
-Guest Name: ${guestName}
-Email: ${email}
-Registration ID: ${registrationId}
 
-IMPORTANT: Please present your invitation at the entrance for quick check-in.
-
-We can't wait to celebrate with you!
-See you there! 🎊
-
-Contact: events@owambe.com | +234 801 234 5678
+Guest who invited you: ${fullName}
       `,
     };
 
