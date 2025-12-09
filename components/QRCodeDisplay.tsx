@@ -185,12 +185,12 @@ export function QRCodeDisplay({
         </div>
       </div>
 
-      <button
+      {/* <button
         onClick={onReset}
         className="w-full border-2 border-[#F40009] text-[#F40009] py-3 rounded-lg font-semibold hover:bg-[#F40009] hover:text-white transition"
       >
         Create Another Registration
-      </button>
+      </button> */}
     </div>
   );
 }
