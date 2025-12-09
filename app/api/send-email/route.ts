@@ -152,9 +152,7 @@ const getEmailTemplate = (data: EmailData): string => {
                 Congratulations! You have been invited to the <strong>Coca-Cola Owambe Extravaganza</strong>.
               </p>
               
-              <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0 0 30px 0;">
-                We are thrilled to have you join us for an unforgettable celebration filled with music, dance, food, and great company!
-              </p>
+             
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f9f9f9; border-left: 4px solid #F40009; margin: 30px 0;">
                 <tr>
